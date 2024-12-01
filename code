@@ -1,1 +1,37 @@
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 
+# Load
+file_path = "C:\\Users\\Xiami Pro\\Downloads\\archive\\bollywood_data_set.csv"
+movies_df = pd.read_csv(file_path)
+
+# Ensure columns exist before using them
+movies_df.rename(columns={'Title': 'movie_name'}, inplace=True)
+movies_df['Genres'] = movies_df.get('Genres', pd.Series(['']*len(movies_df)))
+movies_df['Actors'] = movies_df.get('Actors', pd.Series(['']*len(movies_df)))
+movies_df['Plot'] = movies_df.get('Plot', pd.Series(['']*len(movies_df)))
+
+# Combine features
+movies_df['combined_features'] = movies_df['movie_name'] + " " + movies_df['Genres'] + " " + movies_df['Actors'] + " " + movies_df['Plot']
+
+# Calculate cosine similarity
+tfidf_matrix = TfidfVectorizer(stop_words='english').fit_transform(movies_df['combined_features'])
+cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+
+# Recommend movies function
+def recommend_movies(movie_title):
+    idx = movies_df.index[movies_df['movie_name'] == movie_title].tolist()
+    if not idx: return f"Movie '{movie_title}' not found."
+    sim_scores = sorted(enumerate(cosine_sim[idx[0]]), key=lambda x: x[1], reverse=True)[1:4]
+    recommended_movies = [(movies_df['movie_name'].iloc[i[0]], i[1]) for i in sim_scores]
+    return recommended_movies
+
+movie_title = "3 Idiots"
+recommended_movies = recommend_movies(movie_title)
+
+# Output with "Currently Playing" and "Next Recommended 3 Movies"
+print(f"Currently Playing '{movie_title}':")
+print("\nNext Recommended 3 Movies:")
+for movie, score in recommended_movies:
+    print(f"{movie} - Similarity Score: {score}")
